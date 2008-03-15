@@ -85,6 +85,66 @@
 			$row = mysql_fetch_array($result, MYSQL_ASSOC);
       return $row['id'];
 		}
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief getUserScore
+        \param[in] $userid the userid
+        \return score or 0 on error
+        
+        Returns the user score
+     */
+    /*-----------------------------------------------------------------------*/
+		function getUserScore($userid)
+		{
+			$sql = sprintf("SELECT score FROM %s WHERE id = '%s'",
+				DB_USERS, $userid);
+			$result = mysql_query($sql, $this->link);
+
+			if (!$result) 
+				return 0;
+			$row = mysql_fetch_array($result, MYSQL_ASSOC);
+      return $row['score'];
+		}
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief getUserInfo
+        \param[in] $userid the userid
+        \return score or 0 on error
+        
+        Returns user informations
+     */
+    /*-----------------------------------------------------------------------*/
+		function getUserInfo($userid)
+		{
+			$sql = sprintf("SELECT score, bunkers FROM %s WHERE id = '%s'",
+				DB_USERS, $userid);
+			$result = mysql_query($sql, $this->link);
+
+			if (!$result) 
+				return 0;
+			$row = mysql_fetch_array($result, MYSQL_ASSOC);
+      return $row;
+		}
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief getUserCoords
+        \param[in] $userid the userid
+        \return the user coordinates or 0
+        
+        Returns the user coordinates
+     */
+    /*-----------------------------------------------------------------------*/
+		function getUserCoords($userid)
+		{
+			$sql = sprintf("SELECT x, y FROM %s WHERE id = '%s'",
+				DB_USERS, $userid);
+			$result = mysql_query($sql, $this->link);
+
+			if (!$result) 
+				return 0;
+			$row = mysql_fetch_array($result, MYSQL_ASSOC);
+      return $row;
+		}
 
     /*-----------------------------------------------------------------------*/
     /*! \brief getMap
@@ -141,127 +201,255 @@
    	 		$map[$i] = $row;  
 			return $map;	
 		}
-    
+
     /*-----------------------------------------------------------------------*/
-    /*! \brief moveUnits
+    /*! \brief getUnitsMove
         \param[in] $sx source x coordinate
         \param[in] $sy source y coordinate
+        \param[in] $tx target x coordinate
+        \param[in] $ty target y coordinate
+        \return units if successfull, false otherwise
+        
+        get the units at coordinates ($sx, $sy) and ($tx, $ty) for movement
+     */
+    /*-----------------------------------------------------------------------*/ 
+    function getUnitsMove($sx, $sy, $tx, $ty)
+    {
+                                            /* fetch the two relevant fields */
+      $sql = sprintf("SELECT num, x, y, unitid, userid, move FROM %s
+        WHERE (x = %s AND y = %s) OR (x = %s AND y = %s);", 
+        DB_UNITS, $sx, $sy, $tx, $ty);
+      $result = mysql_query($sql, $this->link);
+      
+      if(!$result)
+      {
+        mysql_query("ROLLBACK", $this->link);
+				return false;
+      }
+ 
+      for($i=0; $row = mysql_fetch_array($result, MYSQL_ASSOC); $i++)
+   	 		$ret[$i] = $row;       
+      return $ret;
+    } 
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief getUnitLocation
+        \param[in] $x x coordinate
+        \param[in] $y y coordinate
+        \return units if successfull, false otherwise
+        
+        get the units at coordinates ($sx, $sy) and ($tx, $ty) for movement
+     */
+    /*-----------------------------------------------------------------------*/ 
+    function getUnitLocation($x, $y)
+    {
+                                            /* fetch the two relevant fields */
+      $sql = sprintf("SELECT num, x, y, unitid, userid, move FROM %s
+        WHERE (x = %s AND y = %s);", 
+        DB_UNITS, $x, $y);
+      $result = mysql_query($sql, $this->link);
+      
+      if(!$result)
+      {
+        mysql_query("ROLLBACK", $this->link);
+				return false;
+      }
+ 
+      $row = mysql_fetch_array($result, MYSQL_ASSOC);    
+      return $row;
+    } 
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief buildBunker
+        \param[in] $sx      source x coordinate
+        \param[in] $sy      source y coordinate
+        \param[in] $userid  the userid
+        
+        build a bunker and reduce bunker counter
+     */
+    /*-----------------------------------------------------------------------*/ 
+    function buildBunker($x, $y, $userid)
+    {
+                                            /* fetch the two relevant fields */
+      $sql = sprintf("UPDATE %s SET unitid = 0, move = 0 WHERE x = %s AND y = %s 
+        AND unitid = 1 AND userid = %s;",
+          DB_UNITS, $x, $y, $userid);
+      $result = mysql_query($sql, $this->link);
+           
+      if(!$result)
+      {
+        mysql_query("ROLLBACK", $this->link);
+				return false;
+      }
+   
+      $sql = sprintf("UPDATE %s SET bunkers = bunkers - 1 WHERE id = %s;",
+        DB_USERS, $userid);
+      $result = mysql_query($sql, $this->link);
+        
+      if(!$result)
+      {
+        mysql_query("ROLLBACK", $this->link);
+				return false;
+      }
+      return true;
+    } 
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief updateUnit
+        \param[in] $tx      target x coordinate
+        \param[in] $ty      target y coordinate
+        \param[in] $num     number of units to move
+        \param[in] $userid  set the userid 
+        \return true if successfull, false otherwise
+        
+        Update units by number in specified field
+     */
+    /*-----------------------------------------------------------------------*/ 
+    function updateUnit($tx, $ty, $num, $userid = -1)
+    {
+      if($userid == -1)
+      {
+        $sql = sprintf("UPDATE %s SET num = num + %s WHERE x = %s AND y = %s;",
+          DB_UNITS, $num, $tx, $ty);
+      }
+      else
+      {
+        $sql = sprintf("UPDATE %s SET num = num + %s, userid = %s
+          WHERE x = %s AND y = %s;", DB_UNITS, $num, $userid, $tx, $ty);
+      }
+      $result = mysql_query($sql, $this->link);
+      if(!$result)
+        return false;
+      return true;
+    }
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief updateScore
+        \param[in] $score   score added
+        \param[in] $userid  the userid 
+        \return true if successfull, false otherwise
+        
+        Update units by number in specified field
+     */
+    /*-----------------------------------------------------------------------*/ 
+    function updateScore($score, $userid)
+    {
+      $sql = sprintf("UPDATE %s SET score = score + %s WHERE id = %s;",
+        DB_USERS, $score, $userid);
+      $result = mysql_query($sql, $this->link);
+      if(!$result)
+        return false;
+      return true;
+    }
+
+    /*-----------------------------------------------------------------------*/
+    /*! \brief deleteUnit
+        \param[in] $x target x coordinate
+        \param[in] $y target y coordinate
+        \return true if successfull, false otherwise
+        
+        Delete units in specified field
+     */
+    /*-----------------------------------------------------------------------*/ 
+    function deleteUnit($x, $y)
+    {
+      $sql = sprintf("DELETE FROM %s WHERE x = %s AND y = %s;", 
+        DB_UNITS, $x, $y);
+      $result = mysql_query($sql, $this->link);
+      if(!$result)        
+        return false;
+      return true;
+    }
+
+    /*-----------------------------------------------------------------------*/
+    /*! \brief insertUnit
         \param[in] $tx target x coordinate
         \param[in] $ty target y coordinate
         \param[in] $num number of units to move
         \param[in] $userid the userid
         \return true if successfull, false otherwise
         
-        Moves number of untis from source(x,y) to target(x,y)
-        A transaction ensures data integrity
+        Insert num units for for user in specified field
      */
-    /*-----------------------------------------------------------------------*/  
-    function moveUnits($sx, $sy, $tx, $ty, $num, $userid)
+    /*-----------------------------------------------------------------------*/ 
+    function insertUnit($tx, $ty, $num, $userid)
     {
-      mysql_query("BEGIN", $this->link);
-      
-                                  /* check if units exist and belongs to user*/
-      $sql = sprintf("SELECT num, x, y, unitid FROM %s
-        WHERE x = %s AND y = %s AND userid = %s;", 
-        DB_UNITS, $sx, $sy, $userid);
+      $sql = sprintf("INSERT INTO %s (num, userid, unitid, x, y)
+        VALUES(%s, %s, 1, %s, %s);", DB_UNITS, $num, $userid, $tx, $ty);
       $result = mysql_query($sql, $this->link);
-      
-      if(!$result)
-      {
-        mysql_query("ROLLBACK", $this->link);
-				return false;
-      }
-                                 /* check if enought units available to move */
-      $row = mysql_fetch_array($result, MYSQL_ASSOC);
-      if($num > $row['num'])
-      {
-        mysql_query("ROLLBACK", $this->link);
-				return false;
-      }
-      
-                                            /* check if target field is free */
-      $sql = sprintf("SELECT id, userid FROM %s WHERE x = %s AND y = %s;",
-        DB_UNITS, $tx, $ty);
-      $result = mysql_query($sql, $this->link);
-      
-      if(!$result)
-      {
-        mysql_query("ROLLBACK", $this->link);
-				return false;
-      }
-      
-                                                  /* calculate the new field */
-      if(mysql_num_rows($result) == 1)
-      {                                              
-                                    /* check if target field belongs to user */        
-        $row2 = mysql_fetch_array($result, MYSQL_ASSOC);
-        if($row2['userid'] != $userid)
-        {
-          mysql_query("ROLLBACK", $this->link);
-          return false;
-        }
-                                                                  /* update */
-        $sql = sprintf("UPDATE %s SET num = num + %s WHERE x = %s AND y = %s;",
-          DB_UNITS, $num, $tx, $ty);
-        mysql_query($sql, $this->link);
-        if(!$result)
-        {
-          mysql_query("ROLLBACK", $this->link);
-          return false;
-        }
-      }
-      else
-      {
-                                                                   /* insert */
-        $sql = sprintf("INSERT INTO %s (num, userid, unitid, x, y)
-          VALUES(%s, %s, 1, %s, %s);", DB_UNITS, $num, $userid, $tx, $ty);
-        mysql_query($sql, $this->link);
-        if(!$result)
-        {
-          mysql_query("ROLLBACK", $this->link);
-          return false;
-        }                                                                
-      }
-                                                  /* calculate the old field */
-      if($row['num'] > $num)
-      {
-                                                                   /* update */
-        $sql = sprintf("UPDATE %s SET num = num - %s WHERE x = %s AND y = %s;",
-          DB_UNITS, $num, $sx, $sy);
-        mysql_query($sql, $this->link);
-        if(!$result)
-        {
-          mysql_query("ROLLBACK", $this->link);
-          return false;
-        }
-      }
-      else if($row['unitid'] == 0)
-      {
-        $sql = sprintf("UPDATE %s SET num = 0 WHERE x = %s AND y = %s;",
-          DB_UNITS, $sx, $sy);
-        mysql_query($sql, $this->link);
-        if(!$result)
-        {
-          mysql_query("ROLLBACK", $this->link);
-          return false;
-        }
-      }
-      else
-      {
-                                                                   /* delete */
-        $sql = sprintf("DELETE FROM %s WHERE x = %s AND y = %s;", 
-          DB_UNITS, $sx, $sy);
-        mysql_query($sql, $this->link);
-        if(!$result)
-        {
-          mysql_query("ROLLBACK", $this->link);
-          return false;
-        }                                                                
-      }
-      mysql_query("COMMIT", $this->link);
+      if(!$result)        
+        return false;
       return true;
     }
     
+    /*-----------------------------------------------------------------------*/
+    /*! \brief startTransaction
+        
+        Starts a transaction
+     */
+    /*-----------------------------------------------------------------------*/
+		function startTransaction()
+		{
+      return mysql_query("BEGIN", $this->link);
+		}
+
+    /*-----------------------------------------------------------------------*/
+    /*! \brief commitTransaction
+        
+        commit a transaction
+     */
+    /*-----------------------------------------------------------------------*/
+		function commitTransaction()
+		{
+      return mysql_query("COMMIT", $this->link);
+		}
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief rollbackTransaction
+        
+        rollback a transaction
+     */
+    /*-----------------------------------------------------------------------*/
+		function rollbackTransaction()
+		{
+      return mysql_query("ROLLBACK", $this->link);
+		}
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief addUnitsTick
+        \param[in] $unitid  the unit that shall be added
+        \param[in] $add     how many units shall be added
+        \return true if successfull, false otherwise
+        
+        Adds to all units that match the unitid a number of units
+     */
+    /*-----------------------------------------------------------------------*/
+    function addUnitsTick($unitid, $add)
+    {
+      $sql = sprintf("UPDATE %s SET num = num + %s WHERE unitid = %s;", 
+        DB_UNITS, $add, $unitid);
+      $result = mysql_query($sql, $this->link);
+      if(!$result)        
+        return false;
+      return true;
+    }
+    
+/*-----------------------------------------------------------------------*/
+    /*! \brief calcBunkersTick
+        \return true if successfull, false otherwise
+        
+        calculates if a user can build a new bunker and update the next score
+     */
+    /*-----------------------------------------------------------------------*/
+    function calcBunkersTick()
+    {
+      $sql = sprintf("UPDATE %s SET bunkers = bunkers + 1, next = next*2
+      WHERE score > next;", DB_USERS);
+      $result = mysql_query($sql, $this->link);
+      if(!$result)        
+        return false;
+      return true;
+    }
     /*-----------------------------------------------------------------------*/
     /*! \brief generateMap
         \param[in] $X X dimension of map
