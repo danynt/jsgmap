@@ -194,31 +194,5 @@
           ($xc + $doffsetx) . "px;\">" . $unit["num"]  . "</div>\n");
 			}
 		}
-    
-    /*-----------------------------------------------------------------------*/
-    /*! \brief moveUnit
-        \param[in] $sx source x coordinate
-        \param[in] $sy source y coordinate
-        \param[in] $tx target x coordinate
-        \param[in] $ty target y coordinate
-        \param[in] $num number of units to move
-        
-        Move units
-     */
-    /*-----------------------------------------------------------------------*/
-    function moveUnit($sx, $sy, $tx, $ty, $num, $userid)
-    {
-      if($num < 1 || $sx>=MAP_SIZE_X || $tx>=MAP_SIZE_X ||
-          $sy>=MAP_SIZE_Y || $ty>=MAP_SIZE_Y)
-        return;
-        
-      if($sx+1 != $tx && $sx-1 != $tx && $sx != $tx)
-        return;
-      if($sy+1 != $ty && $sy-1 != $ty && $sy != $ty)
-        return;
-                                                               /* move units */
-      $this->db->moveUnits($sx, $sy, $tx, $ty, $num, $userid);
-      
-    }
 	}
 ?>

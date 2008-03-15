@@ -3,15 +3,15 @@
 	/* the config file */
 
 	/* mysql database */
-	define(MYSQL_HOST, 			"host"		);
-	define(MYSQL_USER, 		 	"user"		);
-	define(MYSQL_PASSWORD, 	"pw"	 		);
-	define(MYSQL_DATABASE, 	"db"  		);
+	define(MYSQL_HOST, 			"host"	      );
+	define(MYSQL_USER, 		 	"user"		 	  );
+	define(MYSQL_PASSWORD, 	"pw"	 	      );
+	define(MYSQL_DATABASE, 	"db"  	      );
 
 	/* database table names */
-	define(DB_USERS, 				"users"			);
-	define(DB_UNITS,			 	"units"			);
-	define(DB_MAP,	 				"map"				);
+	define(DB_USERS, 				"tusers"			);
+	define(DB_UNITS,			 	"tunits"			);
+	define(DB_MAP,	 				"tmap"				);
 
 	/* map specific configuration */  
   define(MAP_TILESIZE_X, 	  100				);
@@ -23,8 +23,6 @@
 	define(MAP_TILESTART_X1,  -50				);
 	define(MAP_TILESTART_X2,   0				);
 	define(MAP_TILESTART_Y,   -25			  );
-
-
 
 	define(MAP_INTERVAL_X,	  100				);
 	define(MAP_INTERVAL_Y,	  25				);
@@ -43,8 +41,9 @@
   */
   $bunker = array(33, 12, "bu", 30, 18, 30);
   $marine = array(42, 14, "ma", 12, 15, 28);
+  $command = array(27, 2, "co", 44, 35, 34);
   
-  $udef = array($bunker, $marine);
+  $udef = array($bunker, $marine, $command);
   
   /* digit array looks like this  
     num => 

@@ -56,7 +56,8 @@
       if(isset($_GET["demouser"]))
       {
 				$this->username = "demouser";
-				$this->password = "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3";		
+				$this->password = "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3";	
+        $this->passwordhash = $this->password;        
 				$_SESSION["username"] = $this->username;
 				$_SESSION["password"] = "test";
         return 0;
@@ -144,6 +145,18 @@
         $this->userid = 
           $this->db->getUserId($this->username, $this->passwordhash);
       return $this->userid;
+		}
+    
+    /*-----------------------------------------------------------------------*/
+    /*! \brief getUsername
+        \return sername the username
+        
+        Return the userid
+     */
+    /*-----------------------------------------------------------------------*/
+		function getUsername()
+		{
+      return $this->username;
 		}
 
     /*-----------------------------------------------------------------------*/
